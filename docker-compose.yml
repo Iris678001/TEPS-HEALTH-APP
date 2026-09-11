@@ -1,0 +1,45 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# SHRMS — School Health Record Management System
+# Single container: Next.js standalone UI + REST API + SQLite.
+#
+#   docker compose up -d --build     →  http://localhost:3000
+#
+# Volumes keep the SQLite database and uploaded documents persistent across
+# container rebuilds/restarts.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  shrms:
+    build: .
+    image: shrms:latest
+    container_name: shrms
+    ports:
+      - "3000:3000"
+    environment:
+      # SQLite file inside the container (persisted via the shrms-db volume).
+      # For PostgreSQL see README → "From SQLite to PostgreSQL".
+      DATABASE_URL: file:/app/db/custom.db
+      # ⚠️ CHANGE THIS in any real deployment — it signs the JWT session cookies.
+      JWT_SECRET: change-me-in-production
+      # Document storage directory (persisted via the shrms-upload volume).
+      UPLOAD_DIR: /app/upload
+      # "true" = re-run prisma/seed.ts on EVERY container start, which WIPES and
+      # re-creates the demo dataset. Keep it for demos/evaluation; set "false"
+      # once you are storing real data.
+      SEED_ON_START: "true"
+      NODE_ENV: production
+    volumes:
+      - shrms-db:/app/db          # SQLite database persistence
+      - shrms-upload:/app/upload  # uploaded medical documents persistence
+    restart: unless-stopped
+    healthcheck:
+      # /api/auth/me is public and answers 200 even when signed out.
+      test: ["CMD", "bun", "/usr/local/bin/healthcheck.js"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+
+volumes:
+  shrms-db:
+  shrms-upload:

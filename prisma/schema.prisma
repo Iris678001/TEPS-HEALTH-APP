@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Students ────────────────────────────────────────────────────────────────
+model Student {
+  admissionNumber String   @id
+  studentName     String
+  class           String
+  section         String
+  gender          String
+  dob             DateTime
+  bloodGroup      String
+  parentName      String
+  phone           String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  checkups      HealthCheckup[]
+  observations  Observation[]
+  immunizations Immunization[]
+  specialNeed   SpecialNeed?
+  attachments   Attachment[]
+
+  @@index([studentName])
+  @@index([class, section])
+}
+
+// ─── Annual Health Checkups (one per student per academic year) ──────────────
+model HealthCheckup {
+  id                Int      @id @default(autoincrement())
+  admissionNumber   String
+  academicYear      String
+  checkupDate       DateTime
+  height            Float // cm
+  weight            Float // kg
+  bmi               Float
+  eyesightLeft      String
+  eyesightRight     String
+  dentalHealth      String
+  bloodPressure     String
+  nutritionalStatus String
+  nutritionRemarks  String?
+  doctorName        String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  student Student @relation(fields: [admissionNumber], references: [admissionNumber], onDelete: Cascade)
+
+  @@unique([admissionNumber, academicYear])
+  @@index([academicYear])
+}
+
+// ─── Doctor & Nurse Observations ─────────────────────────────────────────────
+model Observation {
+  id              Int      @id @default(autoincrement())
+  admissionNumber String
+  academicYear    String
+  observation     String
+  recommendation  String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  student Student @relation(fields: [admissionNumber], references: [admissionNumber], onDelete: Cascade)
+
+  @@index([admissionNumber])
+}
+
+// ─── Immunization Records ────────────────────────────────────────────────────
+model Immunization {
+  id              Int       @id @default(autoincrement())
+  admissionNumber String
+  vaccine         String
+  date            DateTime
+  dose            String
+  nextDue         DateTime?
+  remarks         String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  student Student @relation(fields: [admissionNumber], references: [admissionNumber], onDelete: Cascade)
+
+  @@index([admissionNumber])
+}
+
+// ─── Special Needs (one per student) ─────────────────────────────────────────
+model SpecialNeed {
+  id                   Int      @id @default(autoincrement())
+  admissionNumber      String   @unique
+  allergies            String?
+  chronicIllness       String?
+  disabilities         String?
+  learningDifficulties String?
+  medication           String?
+  emergencyNotes       String?
+  updatedAt            DateTime @updatedAt
+
+  student Student @relation(fields: [admissionNumber], references: [admissionNumber], onDelete: Cascade)
+}
+
+// ─── Attachments (medical reports, X-rays, prescriptions...) ─────────────────
+model Attachment {
+  id              Int      @id @default(autoincrement())
+  admissionNumber String
+  filename        String // original file name
+  storedName      String // name on disk
+  fileUrl         String
+  category        String   @default("Medical Report")
+  uploadedDate    DateTime @default(now())
+
+  student Student @relation(fields: [admissionNumber], references: [admissionNumber], onDelete: Cascade)
+
+  @@index([admissionNumber])
+}
+
+// ─── Doctor / Admin accounts ─────────────────────────────────────────────────
+model Doctor {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String // bcrypt hash
+  name      String
+  role      String   @default("doctor")
+  createdAt DateTime @default(now())
+}
+
+// ─── Activity log for every edit ─────────────────────────────────────────────
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  actor     String
+  role      String   @default("doctor")
+  action    String
+  details   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

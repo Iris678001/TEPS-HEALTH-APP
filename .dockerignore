@@ -1,0 +1,34 @@
+# ─── Dependencies & build artifacts (recreated inside the image) ─────────────
+node_modules
+.next
+out
+*.tsbuildinfo
+
+# ─── Version control ─────────────────────────────────────────────────────────
+.git
+.gitignore
+
+# ─── Runtime data — containers start FRESH ───────────────────────────────────
+# The SQLite DB and uploaded documents are intentionally NOT baked into the
+# image: the entrypoint runs `prisma db push` (+ seeds demo data when
+# SEED_ON_START=true) on first boot. Persist them via docker-compose volumes.
+db
+upload
+
+# ─── Secrets — never copy real env files into an image ───────────────────────
+.env
+.env.local
+.env.*.local
+
+# ─── Logs ────────────────────────────────────────────────────────────────────
+*.log
+
+# ─── Workspace extras not needed inside the image ────────────────────────────
+examples
+mini-services
+skills
+tests
+download
+.zscripts
+Caddyfile
+worklog.md
