@@ -1,4 +1,4 @@
-﻿/**
+/**
  * scripts/migrate-sqlite-to-supabase.ts
  *
  * One-time migration: reads ALL data from the local SQLite database
@@ -28,9 +28,13 @@ const sqliteClient = new PrismaClient({
 });
 
 // ─── Supabase admin client (writes to Supabase) ───────────────────────────────
-const supabaseUrl =
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://lnelcfeeuhvyylqmxrhp.supabase.co";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl) {
+  console.error("❌  NEXT_PUBLIC_SUPABASE_URL is not set. Aborting.");
+  process.exit(1);
+}
 
 if (!serviceRoleKey) {
   console.error("❌  SUPABASE_SERVICE_ROLE_KEY is not set. Aborting.");
