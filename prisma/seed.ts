@@ -13,7 +13,9 @@ import bcrypt from "bcryptjs";
 import fs from "fs";
 import path from "path";
 
-process.env.DATABASE_URL ??= "file:../db/custom.db";
+if (!process.env.DATABASE_URL) {
+  console.warn("DATABASE_URL is not set.");
+}
 
 const prisma = new PrismaClient();
 

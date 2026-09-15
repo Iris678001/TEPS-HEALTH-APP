@@ -8,8 +8,7 @@
  *   npm run db:migrate-to-supabase
  *
  * Prerequisites:
- *   1. DATABASE_URL must point to the local SQLite file:
- *        DATABASE_URL="file:../db/custom.db"
+ *   1. SQLITE_URL must point to the local SQLite file
  *   2. SUPABASE_SERVICE_ROLE_KEY must be set
  *   3. NEXT_PUBLIC_SUPABASE_URL must be set
  *
@@ -24,7 +23,7 @@ import { createClient } from "@supabase/supabase-js";
 // ─── SQLite Prisma client (reads from local DB) ───────────────────────────────
 // We use a raw PrismaClient so this script works regardless of the env var
 const sqliteClient = new PrismaClient({
-  datasources: { db: { url: process.env.SQLITE_URL || "file:../db/custom.db" } },
+  datasources: { db: { url: process.env.SQLITE_URL } },
 });
 
 // ─── Supabase admin client (writes to Supabase) ───────────────────────────────
