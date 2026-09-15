@@ -38,50 +38,58 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { admissionNumber, dob } = parsed.data;
-  const student = await db.student.findUnique({
-    where: { admissionNumber },
-    include: {
-      checkups: { orderBy: { academicYear: "asc" } },
-      observations: { orderBy: { createdAt: "desc" } },
-      immunizations: { orderBy: { date: "desc" } },
-      specialNeed: true,
-      attachments: { orderBy: { uploadedDate: "desc" } },
-    },
-  });
-
-  // Generic error on any mismatch — never reveal which field was wrong
-  if (!student || student.dob.toISOString().slice(0, 10) !== dob) {
-    return NextResponse.json(
-      {
-        error:
-          "No matching health record found. Please check the Admission Number and Date of Birth.",
+  try {
+    const { admissionNumber, dob } = parsed.data;
+    const student = await db.student.findUnique({
+      where: { admissionNumber },
+      include: {
+        checkups: { orderBy: { academicYear: "asc" } },
+        observations: { orderBy: { createdAt: "desc" } },
+        immunizations: { orderBy: { date: "desc" } },
+        specialNeed: true,
+        attachments: { orderBy: { uploadedDate: "desc" } },
       },
-      { status: 404 }
+    });
+
+    // Generic error on any mismatch — never reveal which field was wrong
+    if (!student || student.dob.toISOString().slice(0, 10) !== dob) {
+      return NextResponse.json(
+        {
+          error:
+            "No matching health record found. Please check the Admission Number and Date of Birth.",
+        },
+        { status: 404 }
+      );
+    }
+
+    const token = await createParentToken(admissionNumber);
+    await logActivity("parent", "parent", "Viewed health record", admissionNumber);
+
+    const { checkups, observations, immunizations, specialNeed, attachments, ...base } = student;
+
+    return NextResponse.json({
+      token,
+      profile: {
+        student: base,
+        checkups: checkups.map((c) => ({
+          ...c,
+          checkupDate: c.checkupDate.toISOString(),
+        })),
+        observations,
+        immunizations: immunizations.map((i) => ({
+          ...i,
+          date: i.date.toISOString(),
+          nextDue: i.nextDue ? i.nextDue.toISOString() : null,
+        })),
+        specialNeed,
+        attachments,
+      },
+    });
+  } catch (e: any) {
+    console.error("Parent verify error:", e);
+    return NextResponse.json(
+      { error: "Server error", details: e.message, stack: e.stack },
+      { status: 500 }
     );
   }
-
-  const token = await createParentToken(admissionNumber);
-  await logActivity("parent", "parent", "Viewed health record", admissionNumber);
-
-  const { checkups, observations, immunizations, specialNeed, attachments, ...base } = student;
-
-  return NextResponse.json({
-    token,
-    profile: {
-      student: base,
-      checkups: checkups.map((c) => ({
-        ...c,
-        checkupDate: c.checkupDate.toISOString(),
-      })),
-      observations,
-      immunizations: immunizations.map((i) => ({
-        ...i,
-        date: i.date.toISOString(),
-        nextDue: i.nextDue ? i.nextDue.toISOString() : null,
-      })),
-      specialNeed,
-      attachments,
-    },
-  });
 }
