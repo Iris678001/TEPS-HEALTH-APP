@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl =
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://lnelcfeeuhvyylqmxrhp.supabase.co";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 /**
@@ -12,7 +11,7 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
  * The syncXxxToSupabase functions below are preserved as no-ops so that existing
  * API route imports continue to compile without modification.
  */
-export const supabaseAdmin = serviceRoleKey
+export const supabaseAdmin = supabaseUrl && serviceRoleKey
   ? createClient(supabaseUrl, serviceRoleKey, {
       auth: {
         persistSession: false,
@@ -20,6 +19,7 @@ export const supabaseAdmin = serviceRoleKey
       },
     })
   : null;
+
 
 // ─── No-op DB sync stubs ──────────────────────────────────────────────────────
 // Prisma now points directly at Supabase PostgreSQL — no secondary sync needed.
