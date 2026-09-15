@@ -1,10 +1,25 @@
-// ─── Shared application types (serialized JSON shapes) ──────────────────────
+export type {
+  StaffRole,
+  StaffRoleConfig,
+  DoctorFieldPermissions,
+  ParentChronicCondition,
+  ChronicConditionMeta,
+} from "./constants";
+export { PARENT_CHRONIC_CONDITIONS, PARENT_CHRONIC_CONDITION_DETAILS } from "./constants";
 
 export interface SessionUser {
   id: number;
   username: string;
   name: string;
   role: string;
+}
+
+export interface DoctorStaff {
+  id: number;
+  username: string;
+  name: string;
+  role: string;
+  createdAt: string;
 }
 
 export interface Student {
@@ -17,6 +32,10 @@ export interface Student {
   bloodGroup: string;
   parentName: string;
   phone: string;
+  aadhaarNumber?: string | null;
+  address?: string | null;
+  identificationMarks?: string | null;
+  emergencyContact?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -35,6 +54,10 @@ export interface HealthCheckup {
   bloodPressure: string;
   nutritionalStatus: string;
   nutritionRemarks: string | null;
+  entEars?: string | null;
+  entNose?: string | null;
+  entThroat?: string | null;
+  entRemarks?: string | null;
   doctorName: string;
 }
 

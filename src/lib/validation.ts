@@ -1,8 +1,13 @@
 import { z } from "zod";
+import { PARENT_CHRONIC_CONDITIONS } from "@/lib/constants";
 
 const isoDate = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be a valid date (YYYY-MM-DD)");
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be a valid date (YYYY-MM-DD)")
+  .refine((val) => {
+    const d = new Date(`${val}T00:00:00.000Z`);
+    return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === val;
+  }, "Must be a valid calendar date (YYYY-MM-DD)");
 
 const academicYear = z
   .string()
@@ -33,6 +38,10 @@ export const studentSchema = z.object({
     .string()
     .trim()
     .regex(/^[0-9+\-\s()]{7,17}$/, "Enter a valid contact number"),
+  aadhaarNumber: z.string().trim().max(30).optional().nullable(),
+  address: z.string().trim().max(500).optional().nullable(),
+  identificationMarks: z.string().trim().max(300).optional().nullable(),
+  emergencyContact: z.string().trim().max(50).optional().nullable(),
 });
 
 export const studentUpdateSchema = studentSchema.omit({ admissionNumber: true });
@@ -42,28 +51,44 @@ export const checkupSchema = z.object({
   admissionNumber,
   academicYear,
   checkupDate: isoDate,
-  height: z.coerce.number().min(50, "Height must be 50-250 cm").max(250),
-  weight: z.coerce.number().min(2, "Weight must be 2-200 kg").max(200),
-  eyesightLeft: z.string().trim().min(1, "Left eyesight is required").max(20),
-  eyesightRight: z.string().trim().min(1, "Right eyesight is required").max(20),
-  dentalHealth: z.string().trim().min(1, "Dental health is required").max(40),
-  bloodPressure: z
-    .string()
-    .trim()
-    .min(1, "Blood pressure is required")
-    .max(20),
-  nutritionalStatus: z.enum([
-    "Normal",
-    "Underweight",
-    "Overweight",
-    "Obese",
-    "Malnourished",
-  ]),
+  height: z.coerce.number().min(0, "Height must be 0-250 cm").max(250).default(0),
+  weight: z.coerce.number().min(0, "Weight must be 0-200 kg").max(200).default(0),
+  eyesightLeft: z.string().trim().max(30).default("Pending"),
+  eyesightRight: z.string().trim().max(30).default("Pending"),
+  dentalHealth: z.string().trim().max(50).default("Pending"),
+  bloodPressure: z.string().trim().max(30).default("Pending"),
+  nutritionalStatus: z
+    .enum(["Normal", "Underweight", "Overweight", "Obese", "Malnourished"])
+    .default("Normal"),
   nutritionRemarks: z.string().trim().max(500).optional().nullable(),
-  doctorName: z.string().trim().min(2, "Doctor name is required").max(80),
+  entEars: z.string().trim().max(100).optional().nullable(),
+  entNose: z.string().trim().max(100).optional().nullable(),
+  entThroat: z.string().trim().max(100).optional().nullable(),
+  entRemarks: z.string().trim().max(500).optional().nullable(),
+  doctorName: z.string().trim().min(2, "Doctor name is required").max(100),
+  station: z.enum(["general", "dental", "eye"]).optional(),
 });
 
-export const checkupUpdateSchema = checkupSchema.omit({ admissionNumber: true });
+export const checkupUpdateSchema = z.object({
+  academicYear: academicYear.optional(),
+  checkupDate: isoDate.optional(),
+  height: z.coerce.number().min(0, "Height must be 0-250 cm").max(250).optional(),
+  weight: z.coerce.number().min(0, "Weight must be 0-200 kg").max(200).optional(),
+  eyesightLeft: z.string().trim().max(30).optional(),
+  eyesightRight: z.string().trim().max(30).optional(),
+  dentalHealth: z.string().trim().max(50).optional(),
+  bloodPressure: z.string().trim().max(30).optional(),
+  nutritionalStatus: z
+    .enum(["Normal", "Underweight", "Overweight", "Obese", "Malnourished"])
+    .optional(),
+  nutritionRemarks: z.string().trim().max(500).optional().nullable(),
+  entEars: z.string().trim().max(100).optional().nullable(),
+  entNose: z.string().trim().max(100).optional().nullable(),
+  entThroat: z.string().trim().max(100).optional().nullable(),
+  entRemarks: z.string().trim().max(500).optional().nullable(),
+  doctorName: z.string().trim().min(2, "Doctor name is required").max(100).optional(),
+  station: z.enum(["general", "dental", "eye"]).optional(),
+});
 
 // ─── Observations ────────────────────────────────────────────────────────────
 export const observationSchema = z.object({
@@ -82,7 +107,8 @@ export const immunizationSchema = z.object({
   date: isoDate,
   dose: z.string().trim().min(1, "Dose is required").max(40),
   nextDue: z
-    .union([isoDate, z.literal(""), z.null(), z.undefined()])
+    .union([isoDate, z.literal(""), z.null()])
+    .optional()
     .transform((v) => (v ? (v as string) : null)),
   remarks: z.string().trim().max(300).optional().nullable(),
 });
@@ -104,6 +130,73 @@ export const specialNeedSchema = z.object({
 export const parentVerifySchema = z.object({
   admissionNumber,
   dob: isoDate,
+});
+
+export const parentVaccineItemSchema = z.object({
+  vaccine: z.string().trim().min(2, "Vaccine name is required").max(80),
+  dose: z.string().trim().min(1).max(40).default("Completed Primary"),
+  date: z
+    .union([isoDate, z.literal(""), z.null()])
+    .optional()
+    .transform((v) => (v ? (v as string) : null)),
+  remarks: z.string().trim().max(300).optional().nullable(),
+});
+
+export const parentVaccinesSchema = z.object({
+  admissionNumber,
+  token: z.string().min(10, "Parent session token is required"),
+  vaccines: z.array(parentVaccineItemSchema).min(1, "Please select at least one vaccine"),
+});
+
+export const parentBloodGroupSchema = z.object({
+  admissionNumber,
+  token: z.string().min(10, "Parent session token is required"),
+  bloodGroup: z.enum(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "N/A"]),
+});
+
+export const parentConditionsSchema = z.object({
+  admissionNumber,
+  token: z.string().min(10, "Parent session token is required"),
+  conditions: z.array(z.string().trim()).default([]),
+  additionalNotes: z.string().trim().max(1000).optional().nullable(),
+});
+
+export const parentCardDetailsSchema = z.object({
+  admissionNumber,
+  token: z.string().min(10, "Parent session token is required"),
+  aadhaarNumber: z
+    .string()
+    .trim()
+    .max(30)
+    .optional()
+    .nullable()
+    .transform((v) => (v && v.trim() ? v.trim() : null)),
+  parentName: z.string().trim().min(2, "Parent / Guardian name is required").max(80),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^[0-9+\-\s()]{7,17}$/, "Enter a valid contact number"),
+  emergencyContact: z
+    .string()
+    .trim()
+    .max(50)
+    .optional()
+    .nullable()
+    .transform((v) => (v && v.trim() ? v.trim() : null)),
+  address: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .nullable()
+    .transform((v) => (v && v.trim() ? v.trim() : null)),
+  identificationMarks: z
+    .string()
+    .trim()
+    .max(300)
+    .optional()
+    .nullable()
+    .transform((v) => (v && v.trim() ? v.trim() : null)),
 });
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

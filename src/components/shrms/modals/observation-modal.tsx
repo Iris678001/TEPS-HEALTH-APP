@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Loader2, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api-client";
-import { getCurrentAcademicYear } from "@/lib/helpers";
+import { calculateAge, formatDate, getCurrentAcademicYear } from "@/lib/helpers";
 import type { Observation } from "@/lib/types";
 import {
   Dialog,
@@ -18,12 +18,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 
 interface ObservationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
   admissionNumber: string;
+  studentName?: string;
+  studentDob?: string | Date;
   observation?: Observation | null; // present → edit
 }
 
@@ -32,6 +35,8 @@ export default function ObservationModal({
   onOpenChange,
   onSaved,
   admissionNumber,
+  studentName,
+  studentDob,
   observation,
 }: ObservationModalProps) {
   const editing = Boolean(observation);
@@ -39,6 +44,7 @@ export default function ObservationModal({
   const [academicYear, setAcademicYear] = useState(getCurrentAcademicYear());
   const [text, setText] = useState("");
   const [recommendation, setRecommendation] = useState("");
+  const age = useMemo(() => calculateAge(studentDob), [studentDob]);
 
   useEffect(() => {
     if (open) {
@@ -81,9 +87,24 @@ export default function ObservationModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{editing ? "Edit Observation" : "Add Doctor / Nurse Observation"}</DialogTitle>
-          <DialogDescription>
-            Record a clinical observation with a follow-up recommendation.
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <DialogTitle>{editing ? "Edit Observation" : "Add Clinical Observation"}</DialogTitle>
+            {age && (
+              <Badge
+                variant="outline"
+                className="bg-emerald-50 text-emerald-800 border-emerald-200 font-semibold text-xs gap-1 py-0.5 px-2.5 shadow-2xs"
+              >
+                <Calendar className="h-3 w-3 text-emerald-600 shrink-0" />
+                <span>Age: {age.formatted}</span>
+              </Badge>
+            )}
+          </div>
+          <DialogDescription className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+            <span>
+              Student: <strong className="text-slate-800">{studentName || admissionNumber}</strong> ({admissionNumber})
+            </span>
+            {studentDob && <span>· DOB: {formatDate(studentDob)}</span>}
+            <span>· Clinical observation & recommendations</span>
           </DialogDescription>
         </DialogHeader>
 

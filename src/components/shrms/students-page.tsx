@@ -13,9 +13,9 @@ import {
   Loader2,
 } from "lucide-react";
 import { api } from "@/lib/api-client";
-import { formatDate, initialsOf } from "@/lib/helpers";
+import { calculateAge, formatDate, initialsOf } from "@/lib/helpers";
 import { CLASSES, SECTIONS } from "@/lib/constants";
-import type { StudentListResponse } from "@/lib/types";
+import type { SessionUser, StudentListResponse } from "@/lib/types";
 import {
   Card,
   CardContent,
@@ -50,9 +50,10 @@ const PAGE_SIZE = 10;
 
 interface StudentsPageProps {
   onOpenStudent: (admissionNumber: string) => void;
+  currentUser?: SessionUser | null;
 }
 
-export default function StudentsPage({ onOpenStudent }: StudentsPageProps) {
+export default function StudentsPage({ onOpenStudent, currentUser }: StudentsPageProps) {
   const [q, setQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
   const [classFilter, setClassFilter] = useState("all");
@@ -142,34 +143,43 @@ export default function StudentsPage({ onOpenStudent }: StudentsPageProps) {
   const to = data ? Math.min(data.page * data.pageSize, data.total) : 0;
 
   return (
-    <Card className="border-blue-100 shadow-sm">
-      <CardHeader>
+    <Card className="border-slate-200 shadow-2xs rounded-md bg-white">
+      <CardHeader className="pb-4 border-b border-slate-100">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle className="text-base">Students</CardTitle>
-            <CardDescription>
-              Search, filter and open student health records.
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base font-bold text-slate-900 tracking-tight">
+                Student Health Registry &amp; Census
+              </CardTitle>
+              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
+                Active Cohort
+              </span>
+            </div>
+            <CardDescription className="text-xs text-slate-500 mt-0.5">
+              Demographic indexing, student health records, and clinical examination status.
             </CardDescription>
           </div>
-          <Button className="gap-2" onClick={() => setAddOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Add Student
-          </Button>
+          {currentUser?.role === "admin" && (
+            <Button size="sm" className="gap-1.5 h-8 text-xs font-semibold" onClick={() => setAddOpen(true)}>
+              <Plus className="h-3.5 w-3.5" />
+              Register Student
+            </Button>
+          )}
         </div>
 
         {/* Filters */}
-        <div className="grid gap-2 sm:grid-cols-[1fr_130px_130px] pt-1">
+        <div className="grid gap-2 sm:grid-cols-[1fr_140px_140px] pt-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
             <Input
-              placeholder="Search admission no., name or parent…"
+              placeholder="Search by admission ID, student name, or guardian…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="pl-9"
+              className="pl-9 h-8 text-xs font-sans border-slate-200 bg-slate-50/50 focus:bg-white"
               aria-label="Search students"
             />
             {loading ? (
-              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-slate-400" />
             ) : null}
           </div>
           <Select
@@ -179,13 +189,13 @@ export default function StudentsPage({ onOpenStudent }: StudentsPageProps) {
               setPage(1);
             }}
           >
-            <SelectTrigger aria-label="Filter by class">
-              <SelectValue placeholder="Class" />
+            <SelectTrigger aria-label="Filter by class" className="h-8 text-xs border-slate-200">
+              <SelectValue placeholder="All Classes" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All classes</SelectItem>
+              <SelectItem value="all" className="text-xs">All Classes</SelectItem>
               {CLASSES.map((c) => (
-                <SelectItem key={c} value={c}>
+                <SelectItem key={c} value={c} className="text-xs">
                   Class {c}
                 </SelectItem>
               ))}
@@ -198,13 +208,13 @@ export default function StudentsPage({ onOpenStudent }: StudentsPageProps) {
               setPage(1);
             }}
           >
-            <SelectTrigger aria-label="Filter by section">
-              <SelectValue placeholder="Section" />
+            <SelectTrigger aria-label="Filter by section" className="h-8 text-xs border-slate-200">
+              <SelectValue placeholder="All Sections" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All sections</SelectItem>
+              <SelectItem value="all" className="text-xs">All Sections</SelectItem>
               {SECTIONS.map((s) => (
-                <SelectItem key={s} value={s}>
+                <SelectItem key={s} value={s} className="text-xs">
                   Section {s}
                 </SelectItem>
               ))}
@@ -217,53 +227,60 @@ export default function StudentsPage({ onOpenStudent }: StudentsPageProps) {
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-slate-50 hover:bg-slate-50">
-                <TableHead>
+              <TableRow className="bg-slate-50 border-b border-slate-200 hover:bg-slate-50">
+                <TableHead className="text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-600">
                   <button
-                    className="flex items-center gap-1.5 font-medium"
+                    className="flex items-center gap-1 font-mono font-semibold"
                     onClick={() => toggleSort("admissionNumber")}
                   >
-                    Admission No. {sortIcon("admissionNumber")}
+                    Adm. ID {sortIcon("admissionNumber")}
                   </button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-600">
                   <button
-                    className="flex items-center gap-1.5 font-medium"
+                    className="flex items-center gap-1 font-mono font-semibold"
                     onClick={() => toggleSort("studentName")}
                   >
-                    Student {sortIcon("studentName")}
+                    Student Demographics {sortIcon("studentName")}
                   </button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-600">
                   <button
-                    className="flex items-center gap-1.5 font-medium"
+                    className="flex items-center gap-1 font-mono font-semibold"
                     onClick={() => toggleSort("class")}
                   >
                     Class {sortIcon("class")}
                   </button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-600">
                   <button
-                    className="flex items-center gap-1.5 font-medium"
+                    className="flex items-center gap-1 font-mono font-semibold"
                     onClick={() => toggleSort("section")}
                   >
-                    Section {sortIcon("section")}
+                    Sec {sortIcon("section")}
                   </button>
                 </TableHead>
-                <TableHead className="hidden md:table-cell">Gender</TableHead>
-                <TableHead className="hidden md:table-cell">
+                <TableHead className="hidden md:table-cell text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-600">
+                  Gender
+                </TableHead>
+                <TableHead className="hidden md:table-cell text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-600">
                   <button
-                    className="flex items-center gap-1.5 font-medium"
+                    className="flex items-center gap-1 font-mono font-semibold"
                     onClick={() => toggleSort("dob")}
                   >
-                    DOB {sortIcon("dob")}
+                    DOB / Calculated Age {sortIcon("dob")}
                   </button>
                 </TableHead>
-                <TableHead className="hidden lg:table-cell">Blood Group</TableHead>
-                <TableHead className="hidden lg:table-cell">Parent</TableHead>
-                <TableHead className="hidden xl:table-cell">Contact</TableHead>
-                <TableHead className="text-right">Record {new Date().getFullYear() - (new Date().getMonth() >= 3 ? 0 : 1)}</TableHead>
-                <TableHead className="w-16" aria-label="Actions" />
+                <TableHead className="hidden lg:table-cell text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-600">
+                  Blood Group
+                </TableHead>
+                <TableHead className="hidden lg:table-cell text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-600">
+                  Guardian / Contact
+                </TableHead>
+                <TableHead className="text-right text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-600">
+                  AY {new Date().getFullYear() - (new Date().getMonth() >= 3 ? 0 : 1)} Screening
+                </TableHead>
+                <TableHead className="w-14" aria-label="Actions" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -271,76 +288,90 @@ export default function StudentsPage({ onOpenStudent }: StudentsPageProps) {
                 data.data.map((s) => (
                   <TableRow
                     key={s.admissionNumber}
-                    className="cursor-pointer"
+                    className="cursor-pointer hover:bg-slate-50/80 transition-colors border-b border-slate-100"
                     onClick={() => onOpenStudent(s.admissionNumber)}
                   >
-                    <TableCell className="font-mono text-xs font-medium">
+                    <TableCell className="font-mono text-xs font-bold text-slate-800">
                       {s.admissionNumber}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[11px] font-semibold shrink-0">
+                        <div className="h-7 w-7 rounded border border-slate-200 bg-slate-100 text-slate-700 flex items-center justify-center text-[10px] font-mono font-semibold shrink-0">
                           {initialsOf(s.studentName)}
                         </div>
-                        <span className="font-medium text-sm">{s.studentName}</span>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-xs text-slate-900 leading-tight truncate">
+                            {s.studentName}
+                          </p>
+                          {s.parentName && (
+                            <p className="text-[10px] text-slate-400 truncate">
+                              {s.parentName}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm">{s.class}</TableCell>
-                    <TableCell className="text-sm">{s.section}</TableCell>
-                    <TableCell className="hidden md:table-cell text-sm">{s.gender}</TableCell>
-                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground whitespace-nowrap">
-                      {formatDate(s.dob)}
+                    <TableCell className="text-xs font-mono font-medium text-slate-700">{s.class}</TableCell>
+                    <TableCell className="text-xs font-mono font-medium text-slate-700">{s.section}</TableCell>
+                    <TableCell className="hidden md:table-cell text-xs text-slate-600">{s.gender}</TableCell>
+                    <TableCell className="hidden md:table-cell text-xs whitespace-nowrap">
+                      <div className="text-slate-700 font-mono text-[11px]">{formatDate(s.dob)}</div>
+                      {calculateAge(s.dob) && (
+                        <div className="text-[10px] font-mono text-emerald-800 bg-emerald-50 border border-emerald-200 px-1 py-0.2 rounded inline-block mt-0.5">
+                          Age: {calculateAge(s.dob)?.formatted}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
-                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                      <Badge variant="outline" className="font-mono text-[10px] font-semibold bg-rose-50 text-rose-800 border-rose-200 rounded px-1.5 py-0.2">
                         {s.bloodGroup}
                       </Badge>
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell text-sm">{s.parentName}</TableCell>
-                    <TableCell className="hidden xl:table-cell text-sm text-muted-foreground whitespace-nowrap">
-                      {s.phone}
+                    <TableCell className="hidden lg:table-cell text-xs text-slate-600">
+                      <div className="truncate font-medium text-slate-800">{s.parentName}</div>
+                      <div className="text-[10px] font-mono text-slate-400">{s.phone}</div>
                     </TableCell>
                     <TableCell className="text-right">
                       {s.hasRecordThisYear ? (
-                        <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-100">
-                          Completed
-                        </Badge>
+                        <span className="inline-flex items-center text-[10px] font-mono font-semibold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-300 rounded px-2 py-0.5">
+                          Screened
+                        </span>
                       ) : (
-                        <Badge className="bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-100">
-                          Pending
-                        </Badge>
+                        <span className="inline-flex items-center text-[10px] font-mono font-semibold uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-300 rounded px-2 py-0.5">
+                          Pending Exam
+                        </span>
                       )}
                     </TableCell>
                     <TableCell>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-primary"
+                        className="h-7 w-7 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded"
                         aria-label={`Open record for ${s.studentName}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           onOpenStudent(s.admissionNumber);
                         }}
                       >
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-3.5 w-3.5" />
                       </Button>
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={11} className="h-36 text-center">
+                  <TableCell colSpan={10} className="h-36 text-center">
                     {loading ? (
-                      <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
+                      <Loader2 className="h-5 w-5 animate-spin mx-auto text-slate-400" />
                     ) : (
                       <div>
-                        <p className="text-sm font-medium">
-                          {failed ? "Failed to load students" : "No students found"}
+                        <p className="text-xs font-semibold text-slate-700">
+                          {failed ? "Failed to load patient census" : "No student records matched query"}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-[11px] text-slate-400 mt-0.5">
                           {failed
-                            ? "Please try again."
-                            : "Try a different search, or add a new student."}
+                            ? "Please check system connectivity or retry."
+                            : "Adjust search filter or register a new student."}
                         </p>
                       </div>
                     )}
@@ -352,45 +383,49 @@ export default function StudentsPage({ onOpenStudent }: StudentsPageProps) {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between border-t px-4 py-3">
-          <p className="text-xs text-muted-foreground">
-            Showing {from}–{to} of {data?.total ?? 0} students
+        <div className="flex items-center justify-between border-t border-slate-200 px-4 py-2.5 bg-slate-50/50">
+          <p className="text-[11px] font-mono text-slate-500">
+            Showing <strong className="text-slate-800">{from}–{to}</strong> of <strong className="text-slate-800">{data?.total ?? 0}</strong> registered students
           </p>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
+              className="h-7 text-xs border-slate-200"
               disabled={page <= 1 || loading}
               onClick={() => setPage((p) => p - 1)}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-3.5 w-3.5 mr-0.5" />
               Prev
             </Button>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-[11px] font-mono text-slate-500">
               Page {data?.page ?? page} of {data?.totalPages ?? 1}
             </span>
             <Button
               variant="outline"
               size="sm"
+              className="h-7 text-xs border-slate-200"
               disabled={!data || page >= data.totalPages || loading}
               onClick={() => setPage((p) => p + 1)}
             >
               Next
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3.5 w-3.5 ml-0.5" />
             </Button>
           </div>
         </div>
       </CardContent>
 
-      <StudentModal
-        open={addOpen}
-        onOpenChange={setAddOpen}
-        onSaved={() => {
-          setAddOpen(false);
-          setPage(1);
-          refetch();
-        }}
-      />
+      {currentUser?.role === "admin" && (
+        <StudentModal
+          open={addOpen}
+          onOpenChange={setAddOpen}
+          onSaved={() => {
+            setAddOpen(false);
+            setPage(1);
+            refetch();
+          }}
+        />
+      )}
     </Card>
   );
 }

@@ -2,6 +2,34 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getDoctorSession, logActivity, unauthorized } from "@/lib/auth";
 import { firstErrorMessage, specialNeedSchema } from "@/lib/validation";
+import { syncSpecialNeedToSupabase } from "@/lib/supabase-sync";
+
+// GET /api/special-needs?admissionNumber=...
+export async function GET(req: NextRequest) {
+  const session = await getDoctorSession();
+  if (!session) return unauthorized();
+
+  const { searchParams } = new URL(req.url);
+  const admissionNumber = searchParams.get("admissionNumber");
+
+  if (!admissionNumber) {
+    const list = await db.specialNeed.findMany({
+      orderBy: { updatedAt: "desc" },
+    });
+    return NextResponse.json({ data: list });
+  }
+
+  const student = await db.student.findUnique({ where: { admissionNumber } });
+  if (!student) {
+    return NextResponse.json({ error: "Student not found." }, { status: 404 });
+  }
+
+  const specialNeed = await db.specialNeed.findUnique({
+    where: { admissionNumber },
+  });
+
+  return NextResponse.json({ specialNeed: specialNeed || null });
+}
 
 // PUT /api/special-needs — upsert the special needs record for a student
 export async function PUT(req: NextRequest) {
@@ -31,6 +59,8 @@ export async function PUT(req: NextRequest) {
     create: { admissionNumber, ...data },
     update: data,
   });
+
+  await syncSpecialNeedToSupabase(specialNeed, "upsert");
 
   await logActivity(session.sub, "doctor", "Updated special needs", admissionNumber);
   return NextResponse.json({ specialNeed });

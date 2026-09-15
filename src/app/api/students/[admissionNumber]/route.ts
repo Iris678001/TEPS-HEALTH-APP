@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getDoctorSession, logActivity, unauthorized } from "@/lib/auth";
 import { firstErrorMessage, studentUpdateSchema } from "@/lib/validation";
+import { syncStudentToSupabase } from "@/lib/supabase-sync";
 
 type Ctx = { params: Promise<{ admissionNumber: string }> };
 
@@ -67,6 +68,8 @@ export async function PUT(req: NextRequest, ctx: Ctx) {
     data: { ...parsed.data, dob: new Date(`${parsed.data.dob}T00:00:00.000Z`) },
   });
 
+  await syncStudentToSupabase(student, "upsert");
+
   await logActivity(
     session.sub,
     "doctor",
@@ -77,10 +80,17 @@ export async function PUT(req: NextRequest, ctx: Ctx) {
   return NextResponse.json({ student });
 }
 
-// DELETE /api/students/:admissionNumber
+// DELETE /api/students/:admissionNumber (Admin only)
 export async function DELETE(_req: NextRequest, ctx: Ctx) {
   const session = await getDoctorSession();
   if (!session) return unauthorized();
+
+  if (session.role !== "admin") {
+    return NextResponse.json(
+      { error: "Forbidden. Only administrators can delete student records." },
+      { status: 403 }
+    );
+  }
 
   const { admissionNumber } = await ctx.params;
   const existing = await db.student.findUnique({ where: { admissionNumber } });
@@ -89,9 +99,10 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
   }
 
   await db.student.delete({ where: { admissionNumber } });
+  await syncStudentToSupabase(existing, "delete");
   await logActivity(
     session.sub,
-    "doctor",
+    "admin",
     "Deleted student",
     `${existing.admissionNumber} · ${existing.studentName}`
   );

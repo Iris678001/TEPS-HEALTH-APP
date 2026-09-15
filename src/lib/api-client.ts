@@ -1,4 +1,4 @@
-import type { ParentAccess, SessionUser, StudentProfile } from "@/lib/types";
+import type { Attachment, ParentAccess, SessionUser, StudentProfile } from "@/lib/types";
 
 export class ApiError extends Error {
   status: number;
@@ -10,7 +10,7 @@ export class ApiError extends Error {
 }
 
 interface ApiOptions {
-  method?: "GET" | "POST" | "PUT" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
 }
 
@@ -34,21 +34,25 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
   return data as T;
 }
 
-/** Multipart file upload for medical documents. */
-export async function uploadAttachment(
+/** Multipart file upload for parents. */
+export async function uploadParentAttachment(
   admissionNumber: string,
   file: File,
-  category: string
+  category: string,
+  token: string
 ): Promise<Attachment> {
   const form = new FormData();
   form.append("file", file);
   form.append("admissionNumber", admissionNumber);
   form.append("category", category);
+  form.append("token", token);
 
-  const res = await fetch("/api/uploads", {
+  const res = await fetch("/api/parent/uploads", {
     method: "POST",
+    headers: {
+      "x-parent-token": token,
+    },
     body: form,
-    credentials: "include",
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -60,4 +64,24 @@ export async function uploadAttachment(
   return (data as { attachment: Attachment }).attachment;
 }
 
-export type { ParentAccess, SessionUser, StudentProfile };
+/** Delete a medical document as parent. */
+export async function deleteParentAttachment(
+  id: number,
+  token: string
+): Promise<void> {
+  const res = await fetch(`/api/parent/files/${id}?token=${encodeURIComponent(token)}`, {
+    method: "DELETE",
+    headers: {
+      "x-parent-token": token,
+    },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(
+      (data as { error?: string }).error || `Delete failed (${res.status})`,
+      res.status
+    );
+  }
+}
+
+export type { Attachment, ParentAccess, SessionUser, StudentProfile };

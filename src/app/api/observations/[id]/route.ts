@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getDoctorSession, logActivity, unauthorized } from "@/lib/auth";
 import { firstErrorMessage, observationUpdateSchema } from "@/lib/validation";
+import { syncObservationToSupabase } from "@/lib/supabase-sync";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -31,6 +32,7 @@ export async function PUT(req: NextRequest, ctx: Ctx) {
     where: { id: numericId },
     data: parsed.data,
   });
+  await syncObservationToSupabase(observation, "upsert");
   await logActivity(
     session.sub,
     "doctor",
@@ -57,6 +59,7 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
   }
 
   await db.observation.delete({ where: { id: numericId } });
+  await syncObservationToSupabase(existing, "delete");
   await logActivity(
     session.sub,
     "doctor",

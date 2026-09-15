@@ -15,11 +15,15 @@ model Student {
   section         String
   gender          String
   dob             DateTime
-  bloodGroup      String
-  parentName      String
-  phone           String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  bloodGroup          String
+  parentName          String
+  phone               String
+  aadhaarNumber       String?
+  address             String?
+  identificationMarks String?
+  emergencyContact    String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   checkups      HealthCheckup[]
   observations  Observation[]
@@ -46,6 +50,10 @@ model HealthCheckup {
   bloodPressure     String
   nutritionalStatus String
   nutritionRemarks  String?
+  entEars           String?  @default("Normal")
+  entNose           String?  @default("Normal")
+  entThroat         String?  @default("Normal")
+  entRemarks        String?
   doctorName        String
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

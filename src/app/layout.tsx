@@ -15,18 +15,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: `${APP_NAME} | SHRMS`,
+  title: "The Elegant Public School | Health Records Portal",
   description:
-    "Digital annual health records for schools — doctor portal with full record management and a read-only parent portal.",
+    "Official Student Health Record Management System (SHRMS) for The Elegant Public School. Affiliated to CBSE (Affiliation No. 931265). Explore • Engross • Evolve.",
   keywords: [
+    "The Elegant Public School",
     "school health records",
     "student health checkup",
     "immunization",
     "health card",
-    "SHRMS",
+    "EPS Health",
+    "CBSE 931265",
   ],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/logo.png",
+    apple: "/logo.png",
   },
 };
 

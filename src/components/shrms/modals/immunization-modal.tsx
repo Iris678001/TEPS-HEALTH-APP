@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Loader2, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api-client";
 import { COMMON_VACCINES, DOSE_OPTIONS } from "@/lib/constants";
+import { calculateAge, formatDate } from "@/lib/helpers";
 import type { Immunization } from "@/lib/types";
 import {
   Dialog,
@@ -17,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -30,6 +32,8 @@ interface ImmunizationModalProps {
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
   admissionNumber: string;
+  studentName?: string;
+  studentDob?: string | Date;
   immunization?: Immunization | null; // present → edit
 }
 
@@ -38,11 +42,14 @@ export default function ImmunizationModal({
   onOpenChange,
   onSaved,
   admissionNumber,
+  studentName,
+  studentDob,
   immunization,
 }: ImmunizationModalProps) {
   const editing = Boolean(immunization);
   const [saving, setSaving] = useState(false);
   const [vaccineChoice, setVaccineChoice] = useState<string>(""); // dropdown value
+  const age = useMemo(() => calculateAge(studentDob), [studentDob]);
   const [customVaccine, setCustomVaccine] = useState("");
   const [date, setDate] = useState("");
   const [dose, setDose] = useState("");
@@ -110,9 +117,24 @@ export default function ImmunizationModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editing ? "Edit Vaccination" : "Add Immunization Record"}</DialogTitle>
-          <DialogDescription>
-            Record a vaccine dose with the next due date.
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <DialogTitle>{editing ? "Edit Vaccination" : "Add Immunization Record"}</DialogTitle>
+            {age && (
+              <Badge
+                variant="outline"
+                className="bg-emerald-50 text-emerald-800 border-emerald-200 font-semibold text-xs gap-1 py-0.5 px-2.5 shadow-2xs"
+              >
+                <Calendar className="h-3 w-3 text-emerald-600 shrink-0" />
+                <span>Age: {age.formatted}</span>
+              </Badge>
+            )}
+          </div>
+          <DialogDescription className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+            <span>
+              Student: <strong className="text-slate-800">{studentName || admissionNumber}</strong> ({admissionNumber})
+            </span>
+            {studentDob && <span>· DOB: {formatDate(studentDob)}</span>}
+            <span>· Record pediatric dose & next due date</span>
           </DialogDescription>
         </DialogHeader>
 

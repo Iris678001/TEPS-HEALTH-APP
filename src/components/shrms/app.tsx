@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, HeartPulse } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { api } from "@/lib/api-client";
 import type { ParentAccess, SessionUser } from "@/lib/types";
 import Landing from "@/components/shrms/landing";
 import DoctorLogin from "@/components/shrms/doctor-login";
 import DoctorShell from "@/components/shrms/doctor-shell";
 import ParentPortal from "@/components/shrms/parent-portal";
+import { SCHOOL_NAME, SCHOOL_LOGO, CBSE_AFFILIATION } from "@/lib/constants";
 
 type View = "landing" | "doctor-login" | "doctor" | "parent";
 
@@ -47,12 +48,17 @@ export default function ShrmsApp() {
 
   if (booting) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-slate-50">
-        <div className="flex items-center gap-2 text-primary">
-          <HeartPulse className="h-8 w-8" />
-          <span className="text-xl font-bold tracking-tight">SHRMS</span>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-50">
+        <img
+          src={SCHOOL_LOGO}
+          alt={SCHOOL_NAME}
+          className="h-14 w-14 object-contain rounded-xl bg-white p-2 border border-slate-200 shadow-sm"
+        />
+        <div className="text-center space-y-1">
+          <p className="text-sm font-bold tracking-tight text-slate-900">{SCHOOL_NAME}</p>
+          <p className="text-[11px] text-slate-500">{CBSE_AFFILIATION}</p>
         </div>
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <Loader2 className="h-4 w-4 animate-spin text-amber-600 mt-2" />
       </div>
     );
   }
@@ -93,6 +99,10 @@ export default function ShrmsApp() {
   return (
     <Landing
       onDoctorLogin={() => setView("doctor-login")}
+      onDoctorSuccess={(u) => {
+        setUser(u);
+        setView("doctor");
+      }}
       onParentVerified={(data) => {
         setParentAccess(data);
         setView("parent");

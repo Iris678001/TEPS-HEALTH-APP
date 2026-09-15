@@ -77,10 +77,17 @@ export async function GET(req: NextRequest) {
   });
 }
 
-// POST /api/students — create a student
+// POST /api/students — create a student (Admin only)
 export async function POST(req: NextRequest) {
   const session = await getDoctorSession();
   if (!session) return unauthorized();
+
+  if (session.role !== "admin") {
+    return NextResponse.json(
+      { error: "Forbidden. Only administrators can register new students." },
+      { status: 403 }
+    );
+  }
 
   const body = await req.json().catch(() => null);
   const parsed = studentSchema.safeParse(body);
@@ -104,7 +111,7 @@ export async function POST(req: NextRequest) {
 
   await logActivity(
     session.sub,
-    "doctor",
+    "admin",
     "Created student",
     `${student.admissionNumber} · ${student.studentName}`
   );

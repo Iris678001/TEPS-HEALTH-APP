@@ -2,6 +2,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { VALID_STAFF_ROLES } from "@/lib/constants";
 
 const SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "shrm-dev-secret-change-in-production"
@@ -30,11 +31,25 @@ export async function createSessionToken(payload: TokenPayload): Promise<string>
 export async function verifySessionToken(token: string): Promise<TokenPayload | null> {
   try {
     const { payload } = await jwtVerify(token, SECRET);
+    // Disallow tokens without valid staff role or scoped to parent
+    if (
+      payload.scope === "parent" ||
+      !payload.role ||
+      !payload.sub ||
+      payload.uid === undefined ||
+      isNaN(Number(payload.uid))
+    ) {
+      return null;
+    }
+    const normalizedRole = String(payload.role).toLowerCase();
+    if (!VALID_STAFF_ROLES.includes(normalizedRole as any)) {
+      return null;
+    }
     return {
       uid: Number(payload.uid),
       sub: String(payload.sub),
       name: String(payload.name),
-      role: String(payload.role),
+      role: normalizedRole,
     };
   } catch {
     return null;
@@ -77,11 +92,14 @@ export async function verifyParentToken(token: string): Promise<string | null> {
   }
 }
 
+import { syncActivityLogToSupabase } from "./supabase-sync";
+
 // ─── Activity logging ────────────────────────────────────────────────────────
 
 export async function logActivity(actor: string, role: string, action: string, details: string) {
   try {
     await db.activityLog.create({ data: { actor, role, action, details } });
+    await syncActivityLogToSupabase({ actor, role, action, details });
   } catch (e) {
     console.error("Failed to write activity log:", e);
   }

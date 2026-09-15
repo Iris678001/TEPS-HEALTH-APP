@@ -9,6 +9,7 @@ import {
   verifyParentToken,
 } from "@/lib/auth";
 import { UPLOAD_DIR, MIME_BY_EXT, extOf } from "@/lib/storage";
+import { supabaseAdmin } from "@/lib/supabase-sync";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -50,8 +51,33 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       },
     });
   } catch {
+    // Cloud storage fallback
+    if (supabaseAdmin) {
+      try {
+        const storagePath = `${attachment.admissionNumber}/${attachment.storedName}`;
+        const { data, error } = await supabaseAdmin.storage
+          .from("health-records")
+          .download(storagePath);
+        if (!error && data) {
+          const buffer = Buffer.from(await data.arrayBuffer());
+          const ext = extOf(attachment.storedName);
+          const download = req.nextUrl.searchParams.get("download") === "1";
+          return new NextResponse(new Uint8Array(buffer), {
+            headers: {
+              "Content-Type": MIME_BY_EXT[ext] || "application/octet-stream",
+              "Content-Length": String(buffer.length),
+              "Content-Disposition": `${download ? "attachment" : "inline"}; filename="${attachment.filename.replace(/"/g, "")}"`,
+              "Cache-Control": "private, no-store",
+            },
+          });
+        }
+      } catch (cloudErr) {
+        console.error("Supabase storage download fallback failed:", cloudErr);
+      }
+    }
+
     return NextResponse.json(
-      { error: "File is missing on disk. It may have been removed." },
+      { error: "File not found or no longer available." },
       { status: 410 }
     );
   }

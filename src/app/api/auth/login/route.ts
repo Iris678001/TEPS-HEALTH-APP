@@ -44,8 +44,14 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  const isSecure =
+    process.env.COOKIE_SECURE !== undefined
+      ? process.env.COOKIE_SECURE === "true"
+      : process.env.NODE_ENV === "production" && req.headers.get("x-forwarded-proto") !== "http";
+
   res.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
+    secure: isSecure,
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_MAX_AGE,

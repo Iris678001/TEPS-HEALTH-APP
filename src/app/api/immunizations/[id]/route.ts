@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getDoctorSession, logActivity, unauthorized } from "@/lib/auth";
 import { firstErrorMessage, immunizationUpdateSchema } from "@/lib/validation";
+import { syncImmunizationToSupabase } from "@/lib/supabase-sync";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -36,6 +37,7 @@ export async function PUT(req: NextRequest, ctx: Ctx) {
       ...rest,
     },
   });
+  await syncImmunizationToSupabase(immunization, "upsert");
   await logActivity(
     session.sub,
     "doctor",
@@ -62,6 +64,7 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
   }
 
   await db.immunization.delete({ where: { id: numericId } });
+  await syncImmunizationToSupabase(existing, "delete");
   await logActivity(
     session.sub,
     "doctor",

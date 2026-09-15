@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getDoctorSession, unauthorized } from "@/lib/auth";
 import { getCurrentAcademicYear } from "@/lib/helpers";
+import { CLASSES } from "@/lib/constants";
 
 // GET /api/dashboard — aggregated stats for the doctor dashboard
 export async function GET() {
@@ -72,7 +73,13 @@ export async function GET() {
     .sort((a, b) => b.count - a.count);
 
   // Checkups by class for the current academic year vs total students per class
-  const classSet = [...new Set(students.map((s) => s.class))].sort();
+  const classOrder = (c: string) => {
+    const idx = (CLASSES as readonly string[]).indexOf(c as any);
+    return idx === -1 ? 99 : idx;
+  };
+  const classSet = [...new Set(students.map((s) => s.class))].sort(
+    (a, b) => classOrder(a) - classOrder(b)
+  );
   const studentsByClass = new Map<string, number>();
   for (const s of students) {
     studentsByClass.set(s.class, (studentsByClass.get(s.class) || 0) + 1);

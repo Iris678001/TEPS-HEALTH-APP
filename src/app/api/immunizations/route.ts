@@ -2,6 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getDoctorSession, logActivity, unauthorized } from "@/lib/auth";
 import { firstErrorMessage, immunizationSchema } from "@/lib/validation";
+import { syncImmunizationToSupabase } from "@/lib/supabase-sync";
+
+// GET /api/immunizations?admissionNumber=...
+export async function GET(req: NextRequest) {
+  const session = await getDoctorSession();
+  if (!session) return unauthorized();
+
+  const { searchParams } = new URL(req.url);
+  const admissionNumber = searchParams.get("admissionNumber");
+  const where = admissionNumber ? { admissionNumber } : {};
+
+  const immunizations = await db.immunization.findMany({
+    where,
+    orderBy: { date: "desc" },
+    take: 100,
+  });
+
+  return NextResponse.json({
+    data: immunizations.map((i) => ({
+      ...i,
+      date: i.date.toISOString(),
+      nextDue: i.nextDue ? i.nextDue.toISOString() : null,
+    })),
+  });
+}
 
 // POST /api/immunizations
 export async function POST(req: NextRequest) {
@@ -30,6 +55,7 @@ export async function POST(req: NextRequest) {
       ...rest,
     },
   });
+  await syncImmunizationToSupabase(immunization, "upsert");
   await logActivity(
     session.sub,
     "doctor",
