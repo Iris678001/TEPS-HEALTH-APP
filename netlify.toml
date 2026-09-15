@@ -1,0 +1,18 @@
+[build]
+  command   = "npm run build"
+  publish   = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[functions]
+  # Extend timeout for DB-heavy operations (admin panel seeding, bulk exports)
+  included_files = ["prisma/**", "node_modules/.prisma/**"]
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-store"

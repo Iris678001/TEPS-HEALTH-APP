@@ -1,13 +1,14 @@
-import path from "path";
-
 /**
- * Directory where uploaded medical documents are stored.
- * Swap this module for an S3/Cloudinary adapter in production —
- * the rest of the app only depends on `uploadFileToStorage` semantics
- * implemented in /api/uploads.
+ * Storage helpers shared across upload/download routes.
+ *
+ * File storage is handled exclusively by Supabase Storage.
+ * The local filesystem is NOT used — Netlify serverless has no persistent disk.
+ *
+ * Upload entry-point : POST /api/parent/uploads
+ * Download entry-point: GET  /api/files/:id
  */
-export const UPLOAD_DIR =
-  process.env.UPLOAD_DIR || path.join(process.cwd(), "upload");
+
+export const SUPABASE_BUCKET = "health-records";
 
 export const MIME_BY_EXT: Record<string, string> = {
   pdf: "application/pdf",

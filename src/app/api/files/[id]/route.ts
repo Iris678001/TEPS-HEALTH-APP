@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { unlink } from "fs/promises";
-import path from "path";
 import { db } from "@/lib/db";
 import {
   getDoctorSession,
@@ -8,7 +6,7 @@ import {
   unauthorized,
   verifyParentToken,
 } from "@/lib/auth";
-import { UPLOAD_DIR, MIME_BY_EXT, extOf } from "@/lib/storage";
+import { SUPABASE_BUCKET } from "@/lib/storage";
 import { supabaseAdmin } from "@/lib/supabase-sync";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -36,51 +34,32 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     }
   }
 
-  try {
-    const { readFile } = await import("fs/promises");
-    const buffer = await readFile(path.join(UPLOAD_DIR, attachment.storedName));
-    const ext = extOf(attachment.storedName);
-    const download = req.nextUrl.searchParams.get("download") === "1";
+  // If fileUrl is already a full public URL (Supabase Storage), redirect directly
+  if (attachment.fileUrl.startsWith("https://")) {
+    return NextResponse.redirect(attachment.fileUrl);
+  }
 
-    return new NextResponse(new Uint8Array(buffer), {
-      headers: {
-        "Content-Type": MIME_BY_EXT[ext] || "application/octet-stream",
-        "Content-Length": String(buffer.length),
-        "Content-Disposition": `${download ? "attachment" : "inline"}; filename="${attachment.filename.replace(/"/g, "")}"`,
-        "Cache-Control": "private, no-store",
-      },
-    });
-  } catch {
-    // Cloud storage fallback
-    if (supabaseAdmin) {
-      try {
-        const storagePath = `${attachment.admissionNumber}/${attachment.storedName}`;
-        const { data, error } = await supabaseAdmin.storage
-          .from("health-records")
-          .download(storagePath);
-        if (!error && data) {
-          const buffer = Buffer.from(await data.arrayBuffer());
-          const ext = extOf(attachment.storedName);
-          const download = req.nextUrl.searchParams.get("download") === "1";
-          return new NextResponse(new Uint8Array(buffer), {
-            headers: {
-              "Content-Type": MIME_BY_EXT[ext] || "application/octet-stream",
-              "Content-Length": String(buffer.length),
-              "Content-Disposition": `${download ? "attachment" : "inline"}; filename="${attachment.filename.replace(/"/g, "")}"`,
-              "Cache-Control": "private, no-store",
-            },
-          });
-        }
-      } catch (cloudErr) {
-        console.error("Supabase storage download fallback failed:", cloudErr);
-      }
-    }
+  // Fallback: generate a signed URL from Supabase Storage (5-minute expiry)
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { error: "File storage is not configured." },
+      { status: 503 }
+    );
+  }
 
+  const storagePath = `${attachment.admissionNumber}/${attachment.storedName}`;
+  const { data, error } = await supabaseAdmin.storage
+    .from(SUPABASE_BUCKET)
+    .createSignedUrl(storagePath, 300); // 5 minutes
+
+  if (error || !data?.signedUrl) {
     return NextResponse.json(
       { error: "File not found or no longer available." },
       { status: 410 }
     );
   }
+
+  return NextResponse.redirect(data.signedUrl);
 }
 
 // DELETE /api/files/:id — doctor only
@@ -99,11 +78,18 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
     return NextResponse.json({ error: "File not found." }, { status: 404 });
   }
 
+  // Delete database record first
   await db.attachment.delete({ where: { id: numericId } });
-  try {
-    await unlink(path.join(UPLOAD_DIR, attachment.storedName));
-  } catch {
-    // file already gone from disk — ignore
+
+  // Delete from Supabase Storage (best-effort)
+  if (supabaseAdmin) {
+    const storagePath = `${attachment.admissionNumber}/${attachment.storedName}`;
+    const { error } = await supabaseAdmin.storage
+      .from(SUPABASE_BUCKET)
+      .remove([storagePath]);
+    if (error) {
+      console.error("Supabase Storage delete error:", error.message);
+    }
   }
 
   await logActivity(
@@ -114,3 +100,4 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
   );
   return NextResponse.json({ ok: true });
 }
+
