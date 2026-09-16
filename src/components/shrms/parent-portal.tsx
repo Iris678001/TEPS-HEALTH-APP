@@ -144,12 +144,12 @@ export default function ParentPortal({ access, onExit }: ParentPortalProps) {
             size="sm"
             variant="outline"
             onClick={() => setConditionsModalOpen(true)}
-            className="h-8 gap-1.5 border-rose-200 bg-rose-50/70 hover:bg-rose-100 text-rose-700 text-xs font-semibold shadow-xs"
+            className="h-8 gap-1.5 border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold shadow-xs"
           >
-            <HeartPulse className="h-3.5 w-3.5 text-rose-600" />
+            <HeartPulse className="h-3.5 w-3.5 text-emerald-600" />
             <span className="hidden sm:inline">Health</span> Conditions
             {declaredConditions.length > 0 && (
-              <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[10px] font-bold leading-none">
+              <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-emerald-600 text-white text-[10px] font-bold leading-none">
                 {declaredConditions.length}
               </span>
             )}
