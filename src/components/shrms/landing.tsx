@@ -47,17 +47,30 @@ export default function Landing({
 
   async function handleParentVerify(e: React.FormEvent) {
     e.preventDefault();
-    if (!admissionNumber.trim() || !dob) {
+    if (!admissionNumber.trim() || !dob.trim()) {
       toast.error("Please provide both the student admission number and date of birth.");
       return;
     }
+
+    let formattedDob = dob.trim();
+    const datePattern = /^(\d{2})[-/.](\d{2})[-/.](\d{4})$/;
+    const match = formattedDob.match(datePattern);
+    
+    if (match) {
+      // Reformat DD-MM-YYYY to YYYY-MM-DD
+      formattedDob = `${match[3]}-${match[2]}-${match[1]}`;
+    } else if (!/^\d{4}-\d{2}-\d{2}$/.test(formattedDob)) {
+      toast.error("Please enter the Date of Birth in DD-MM-YYYY format (e.g. 25-03-2015).");
+      return;
+    }
+
     setParentLoading(true);
     try {
       const data = await api<
         ParentAccess & { profile: { student: { studentName: string } } }
       >("/api/parent/verify", {
         method: "POST",
-        body: { admissionNumber: admissionNumber.trim(), dob },
+        body: { admissionNumber: admissionNumber.trim(), dob: formattedDob },
       });
       toast.success(`Verified official health records for ${data.profile.student.studentName}.`);
       onParentVerified(data as unknown as ParentAccess);
@@ -255,7 +268,8 @@ export default function Landing({
                     </Label>
                     <Input
                       id="dob"
-                      type="date"
+                      type="text"
+                      placeholder="DD-MM-YYYY"
                       value={dob}
                       onChange={(e) => setDob(e.target.value)}
                       className="h-10 text-sm bg-white border-slate-300 focus-visible:border-amber-600 focus-visible:ring-amber-500/20"
