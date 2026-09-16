@@ -40,8 +40,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const { admissionNumber, dob } = parsed.data;
+    const normalizedAdmissionNumber = admissionNumber.toUpperCase();
+    
     const student = await db.student.findUnique({
-      where: { admissionNumber },
+      where: { admissionNumber: normalizedAdmissionNumber },
       include: {
         checkups: { orderBy: { academicYear: "asc" } },
         observations: { orderBy: { createdAt: "desc" } },
@@ -62,8 +64,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const token = await createParentToken(admissionNumber);
-    await logActivity("parent", "parent", "Viewed health record", admissionNumber);
+    const token = await createParentToken(normalizedAdmissionNumber);
+    await logActivity("parent", "parent", "Viewed health record", normalizedAdmissionNumber);
 
     const { checkups, observations, immunizations, specialNeed, attachments, ...base } = student;
 

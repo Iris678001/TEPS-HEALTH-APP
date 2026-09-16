@@ -70,7 +70,7 @@ export default function Landing({
         ParentAccess & { profile: { student: { studentName: string } } }
       >("/api/parent/verify", {
         method: "POST",
-        body: { admissionNumber: admissionNumber.trim(), dob: formattedDob },
+        body: { admissionNumber: admissionNumber.trim().toUpperCase(), dob: formattedDob },
       });
       toast.success(`Verified official health records for ${data.profile.student.studentName}.`);
       onParentVerified(data as unknown as ParentAccess);
