@@ -29,9 +29,9 @@ export async function GET(req: NextRequest) {
       q
         ? {
             OR: [
-              { admissionNumber: { contains: q } },
-              { studentName: { contains: q } },
-              { parentName: { contains: q } },
+              { admissionNumber: { contains: q, mode: "insensitive" } },
+              { studentName: { contains: q, mode: "insensitive" } },
+              { parentName: { contains: q, mode: "insensitive" } },
             ],
           }
         : {},
