@@ -148,10 +148,10 @@ export default function ParentConditionsModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden max-h-[92vh] flex flex-col">
         {/* Modal Header */}
-        <div className="p-5 sm:p-6 border-b bg-gradient-to-r from-rose-50/80 via-amber-50/40 to-white shrink-0">
+        <div className="p-5 sm:p-6 border-b bg-gradient-to-r from-emerald-50/80 via-emerald-50/40 to-white shrink-0">
           <DialogHeader>
             <div className="flex items-center gap-2.5 mb-1">
-              <div className="h-9 w-9 rounded-lg bg-rose-600/10 text-rose-600 flex items-center justify-center">
+              <div className="h-9 w-9 rounded-lg bg-emerald-600/10 text-emerald-600 flex items-center justify-center">
                 <HeartPulse className="h-5 w-5" />
               </div>
               <div>
@@ -177,7 +177,26 @@ export default function ParentConditionsModal({
 
         {/* Checkbox Condition List Body */}
         <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4">
-          <div className="flex items-center justify-between">
+          {/* Explicit Normal Button */}
+          <button
+            type="button"
+            onClick={handleClearAll}
+            className={`w-full p-3 rounded-xl border flex items-center gap-3 transition-colors text-left ${selectedConditions.size === 0 ? 'bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500/50' : 'bg-white border-slate-200 hover:border-emerald-300 hover:bg-slate-50'}`}
+          >
+            <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${selectedConditions.size === 0 ? 'bg-emerald-500 text-white shadow-sm' : 'bg-slate-100 text-slate-400'}`}>
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className={`font-bold text-sm ${selectedConditions.size === 0 ? 'text-emerald-900' : 'text-slate-800'}`}>
+                Normal (No Medical Conditions)
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                My ward does not have any of the listed chronic health conditions.
+              </p>
+            </div>
+          </button>
+
+          <div className="flex items-center justify-between pt-2">
             <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
               Chronic Illness &amp; Medical Disclosures
             </Label>
@@ -291,7 +310,7 @@ export default function ParentConditionsModal({
               size="sm"
               onClick={handleSave}
               disabled={saving}
-              className="gap-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold shadow-xs"
+              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs"
             >
               {saving ? (
                 <>

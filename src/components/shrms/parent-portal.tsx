@@ -275,25 +275,26 @@ export default function ParentPortal({ access, onExit }: ParentPortalProps) {
               </Button>
             </div>
           ) : (
-            <div className="mb-6 rounded-xl border border-rose-200/80 bg-gradient-to-r from-rose-600 via-pink-600 to-amber-600 p-4 sm:p-5 text-white shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="space-y-1">
+            <div className="mb-6 rounded-xl bg-gradient-to-br from-emerald-600 via-emerald-500 to-green-500 p-4 sm:p-5 text-white shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-bold tracking-wider uppercase">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-white/20 text-white">
                     Health Disclosure
                   </span>
                   <h2 className="text-base sm:text-lg font-bold">
                     Declare Ward&apos;s Medical Conditions
                   </h2>
                 </div>
-                <p className="text-xs sm:text-sm text-rose-100 max-w-2xl leading-relaxed">
-                  Declare any chronic conditions (Mental Illness, Epilepsy, Depression, Chronic Nephritis, Uremia, Infectious Disease) so school doctors and emergency responders are prepared.
+                <p className="text-xs sm:text-sm text-emerald-100 max-w-2xl leading-relaxed">
+                  Declare any chronic conditions (Mental Illness, Epilepsy, Depression, Chronic Nephritis, Uremia, Infectious Disease) or mark as Normal so school doctors and emergency responders are prepared.
                 </p>
               </div>
               <Button
+                size="sm"
                 onClick={() => setConditionsModalOpen(true)}
-                className="bg-white text-rose-700 hover:bg-rose-50 font-semibold text-xs sm:text-sm h-9 sm:h-10 px-4 shrink-0 shadow-xs gap-2"
+                className="bg-white text-emerald-700 hover:bg-emerald-50 font-semibold text-xs sm:text-sm h-9 sm:h-10 px-4 shrink-0 shadow-xs gap-2"
               >
-                <HeartPulse className="h-4 w-4 text-rose-600" />
+                <HeartPulse className="h-4 w-4 text-emerald-600" />
                 Declare Conditions
               </Button>
             </div>
